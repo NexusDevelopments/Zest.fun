@@ -1,0 +1,23 @@
+# Solana/Rust files (not needed for frontend deployment)
+target/
+programs/
+tests/zest.ts
+Anchor.toml
+Cargo.toml
+rust-toolchain.toml
+*.rs
+*.toml
+
+# Test files
+test-ledger/
+.anchor/
+
+# Development
+*.md
+!README.md
+setup.sh
+dev.sh
+
+# IDE
+.vscode/
+.idea/
