@@ -1,18 +1,10 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
   "regions": ["iad1"],
   "env": {
     "NEXT_PUBLIC_SOLANA_NETWORK": "devnet",
     "NEXT_PUBLIC_RPC_ENDPOINT": "https://api.devnet.solana.com"
-  },
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_SOLANA_NETWORK": "devnet",
-      "NEXT_PUBLIC_RPC_ENDPOINT": "https://api.devnet.solana.com"
-    }
   }
 }
