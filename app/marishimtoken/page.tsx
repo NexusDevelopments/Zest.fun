@@ -13,6 +13,7 @@ import {
   sellDemoToken,
   simulatePriceChange,
 } from '@/lib/demoMode';
+import Gingerswipe from '@/components/Gingerswipe';
 
 const ADMIN_WALLET = process.env.NEXT_PUBLIC_ADMIN_WALLET || '5aeHMWS1LNsWF1mS1uceARfCeR1dhuWzEXRDwzqRWsJ1';
 
@@ -24,15 +25,21 @@ export default function MarishimTokenPage() {
   const [myBalance, setMyBalance] = useState(0);
   const [priceChange24h, setPriceChange24h] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
+  const [sendAddress, setSendAddress] = useState('');
+  const [receiveAddress, setReceiveAddress] = useState('');
+  const [addressVerified, setAddressVerified] = useState(false);
+  const [biometricComplete, setBiometricComplete] = useState(false);
+  const isVerified = addressVerified && biometricComplete;
 
   const isAdmin = connected && publicKey?.toBase58() === ADMIN_WALLET;
+  const isAdminOrVerified = isAdmin || isVerified;
 
   useEffect(() => {
     // Load or create Marishim token
     const loadToken = async () => {
       let t = getDemoToken('MRSHM');
       
-      if (!t && isAdmin) {
+      if (!t && isAdminOrVerified) {
         // Auto-create token for admin
         t = createDemoToken(
           'Marishim Coin',
@@ -56,7 +63,7 @@ export default function MarishimTokenPage() {
     };
 
     loadToken();
-  }, [publicKey, isAdmin]);
+  }, [publicKey, isAdminOrVerified]);
 
   // Auto-trading logic
   useEffect(() => {
@@ -91,8 +98,24 @@ export default function MarishimTokenPage() {
     return () => clearInterval(interval);
   }, [autoTradeEnabled, token, sellThreshold, myBalance]);
 
+  const handleVerifyAccess = () => {
+    const normalizedSend = sendAddress.trim();
+    const normalizedReceive = receiveAddress.trim();
+
+    if (normalizedSend === ADMIN_WALLET || normalizedReceive === ADMIN_WALLET) {
+      setAddressVerified(true);
+      return;
+    }
+
+    alert('❌ Address does not match admin wallet.');
+  };
+
+  const handleBiometricSuccess = () => {
+    setBiometricComplete(true);
+  };
+
   const handleBuyFree = async () => {
-    if (!isAdmin) {
+    if (!isAdminOrVerified) {
       alert('Admin only!');
       return;
     }
@@ -108,7 +131,7 @@ export default function MarishimTokenPage() {
   };
 
   const handleInstantBuy = async () => {
-    if (!isAdmin) return;
+    if (!isAdminOrVerified) return;
     
     buyDemoToken('MRSHM', 1000, ADMIN_WALLET, 0);
     setMyBalance(myBalance + 1000);
@@ -116,41 +139,125 @@ export default function MarishimTokenPage() {
     if (updated) setToken({ ...updated });
   };
 
-  if (!connected) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="text-6xl mb-6"
-          >
-            🔑
-          </motion.div>
-          <h1 className="text-3xl font-bold mb-4 text-cyan-400">Admin Access Required</h1>
-          <WalletMultiButton />
+  if (!connected && !isVerified) {
+    if (!addressVerified) {
+      // Step 1: Address verification
+      return (
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="text-6xl mb-6"
+            >
+              🔑
+            </motion.div>
+            <h1 className="text-3xl font-bold mb-4 text-cyan-400">Enter Your Address</h1>
+            <div className="space-y-3 max-w-md mx-auto">
+              <input
+                value={sendAddress}
+                onChange={(e) => setSendAddress(e.target.value)}
+                placeholder="Send address"
+                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
+              />
+              <input
+                value={receiveAddress}
+                onChange={(e) => setReceiveAddress(e.target.value)}
+                placeholder="Receive address"
+                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
+              />
+              <button
+                onClick={handleVerifyAccess}
+                className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 transition-colors font-bold"
+              >
+                Next
+              </button>
+            </div>
+            <div className="mt-4">
+              <WalletMultiButton />
+            </div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    } else {
+      // Step 2: Biometric verification
+      return (
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="text-6xl mb-6"
+            >
+              👆
+            </motion.div>
+            <h1 className="text-3xl font-bold mb-2 text-cyan-400">Biometric Verification</h1>
+            <p className="text-gray-400 mb-8">Complete the Gingerswipe to unlock</p>
+            <Gingerswipe onSuccess={handleBiometricSuccess} />
+          </div>
+        </div>
+      );
+    }
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            initial={{ rotate: 0 }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="text-6xl mb-6"
-          >
-            🚫
-          </motion.div>
-          <h1 className="text-3xl font-bold text-red-500">Access Denied</h1>
-          <p className="text-gray-400 mt-2">This route is for Marishim only</p>
+  if (!isAdminOrVerified) {
+    if (!addressVerified) {
+      // Step 1: Address verification
+      return (
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center">
+            <motion.div
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-6xl mb-6"
+            >
+              🚫
+            </motion.div>
+            <h1 className="text-3xl font-bold text-red-500 mb-4">Access Denied</h1>
+            <p className="text-gray-400 mb-6">This route is for Marishim only</p>
+            <div className="mt-6 space-y-3 max-w-md mx-auto">
+              <input
+                value={sendAddress}
+                onChange={(e) => setSendAddress(e.target.value)}
+                placeholder="Send address"
+                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
+              />
+              <input
+                value={receiveAddress}
+                onChange={(e) => setReceiveAddress(e.target.value)}
+                placeholder="Receive address"
+                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
+              />
+              <button
+                onClick={handleVerifyAccess}
+                className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 transition-colors font-bold"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    } else {
+      // Step 2: Biometric verification
+      return (
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="text-6xl mb-6"
+            >
+              👆
+            </motion.div>
+            <h1 className="text-3xl font-bold mb-2 text-cyan-400">Biometric Verification</h1>
+            <p className="text-gray-400 mb-8">Complete the Gingerswipe to unlock</p>
+            <Gingerswipe onSuccess={handleBiometricSuccess} />
+          </div>
+        </div>
+      );
+    }
   }
 
   return (
