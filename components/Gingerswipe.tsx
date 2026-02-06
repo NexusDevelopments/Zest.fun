@@ -2,23 +2,25 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { Lock, Unlock } from 'lucide-react';
+import { Lock, Unlock, Fingerprint } from 'lucide-react';
 
 interface GingerswipeProps {
-  onUnlockSuccess: () => void;
+  onSuccess: () => void;
+  mode?: 'verify' | 'register';
 }
 
-export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
+export default function Gingerswipe({ onSuccess, mode = 'verify' }: GingerswipeProps) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [authStatus, setAuthStatus] = useState<'idle' | 'prompt' | 'success' | 'error'>('idle');
   const [authMessage, setAuthMessage] = useState('');
+  const [registeredFingers, setRegisteredFingers] = useState(0);
   const constraintsRef = useRef<HTMLDivElement>(null);
   
   const x = useMotionValue(0);
-  const trackWidth = 320; // Track width
-  const iconSize = 60; // Slider icon size
-  const threshold = trackWidth - iconSize - 16; // Unlock threshold
+  const trackWidth = 320;
+  const iconSize = 60;
+  const threshold = trackWidth - iconSize - 16;
 
   const backgroundColor = useTransform(
     x,
@@ -37,55 +39,105 @@ export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
     const currentX = x.get();
     
     if (currentX >= threshold) {
-      // User completed the swipe
       setIsUnlocked(true);
       setAuthStatus('prompt');
-      setAuthMessage('Authenticating with biometrics...');
+      const isRegister = mode === 'register';
+      setAuthMessage(isRegister ? `Add Fingerprint ${registeredFingers + 1} of 2...` : 'Verifying security...');
       setTimeout(() => {
         triggerBiometricAuth();
       }, 500);
     } else {
-      // Snap back to start
       x.set(0);
     }
   };
 
   const triggerBiometricAuth = async () => {
     try {
-      // Check if WebAuthn is supported
       if (!window.PublicKeyCredential || !window.isSecureContext) {
         setAuthStatus('error');
-        setAuthMessage('Biometric auth requires a secure context and supported browser.');
+        setAuthMessage('Security requires a secure context and supported browser.');
         resetSwipe();
         return;
       }
 
-      // Create a simple WebAuthn challenge
       const challenge = new Uint8Array(32);
       window.crypto.getRandomValues(challenge);
 
-      const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
-        challenge,
-        timeout: 60000,
-        userVerification: 'required',
-        allowCredentials: [], // Empty allows platform authenticator
-      };
+      if (mode === 'register') {
+        // Registration mode - register new fingerprint
+        const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
+          challenge,
+          rp: {
+            name: 'Marishim Token',
+            id: window.location.hostname,
+          },
+          user: {
+            id: new Uint8Array(16),
+            name: `user-${Date.now()}`,
+            displayName: `Fingerprint ${registeredFingers + 1}`,
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 }, // ES256
+          ],
+          timeout: 60000,
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+          },
+          attestation: 'none',
+        };
 
-      const credential = (await navigator.credentials.get({
-        publicKey: publicKeyCredentialRequestOptions,
-      })) as PublicKeyCredential | null;
+        const credential = (await navigator.credentials.create({
+          publicKey: publicKeyCredentialCreationOptions,
+        })) as PublicKeyCredential | null;
 
-      if (credential) {
-        setAuthStatus('success');
-        setAuthMessage('Biometric authentication successful.');
-        onUnlockSuccess();
+        if (credential) {
+          const newCount = registeredFingers + 1;
+          setRegisteredFingers(newCount);
+          
+          if (newCount === 2) {
+            // Both fingerprints registered
+            setAuthStatus('success');
+            setAuthMessage('✅ 2 Fingerprints registered successfully!');
+            setTimeout(() => {
+              onSuccess();
+            }, 1500);
+          } else {
+            // One more to go
+            setAuthStatus('success');
+            setAuthMessage('✅ Fingerprint 1 added. Drag again to add Fingerprint 2.');
+            resetSwipe();
+          }
+        } else {
+          setAuthStatus('error');
+          setAuthMessage('Failed to register fingerprint.');
+          resetSwipe();
+        }
       } else {
-        setAuthStatus('error');
-        setAuthMessage('Biometric authentication failed.');
-        resetSwipe();
+        // Verification mode
+        const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
+          challenge,
+          timeout: 60000,
+          userVerification: 'required',
+          allowCredentials: [],
+        };
+
+        const credential = (await navigator.credentials.get({
+          publicKey: publicKeyCredentialRequestOptions,
+        })) as PublicKeyCredential | null;
+
+        if (credential) {
+          setAuthStatus('success');
+          setAuthMessage('✅ Security verified!');
+          onSuccess();
+        } else {
+          setAuthStatus('error');
+          setAuthMessage('Security verification failed.');
+          resetSwipe();
+        }
       }
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error('Auth error:', error);
       setAuthStatus('error');
       setAuthMessage('Authentication error. Please try again.');
       resetSwipe();
@@ -100,7 +152,7 @@ export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
   return (
     <div className="flex flex-col items-center space-y-4 w-full">
       <h2 className="text-2xl font-bold cyan-glow mb-4">
-        🫚 Gingerswipe to Unlock
+        🔐 {mode === 'register' ? 'Add Security' : 'Security Check'}
       </h2>
       
       <div 
@@ -118,7 +170,6 @@ export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
           transition: 'all 0.3s ease',
         }}
       >
-        {/* Background */}
         <motion.div
           className="absolute inset-0"
           style={{ 
@@ -126,14 +177,12 @@ export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
           }}
         />
 
-        {/* Instruction Text */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className={`text-sm font-semibold ${isUnlocked ? 'text-cyan-neon' : 'text-ginger'}`}>
-            {isUnlocked ? 'Unlocked! Authenticating...' : 'Slide to Unlock →'}
+            {isUnlocked ? 'Processing...' : 'Slide to unlock →'}
           </span>
         </div>
 
-        {/* Draggable Icon */}
         <motion.div
           drag="x"
           dragConstraints={constraintsRef}
@@ -160,6 +209,8 @@ export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
           >
             {isUnlocked ? (
               <Unlock className="w-8 h-8 text-black" />
+            ) : mode === 'register' ? (
+              <Fingerprint className="w-8 h-8 text-white" />
             ) : (
               <Lock className="w-8 h-8 text-white" />
             )}
@@ -167,8 +218,17 @@ export default function Gingerswipe({ onUnlockSuccess }: GingerswipeProps) {
         </motion.div>
       </div>
 
+      {mode === 'register' && registeredFingers > 0 && (
+        <div className="text-sm text-cyan-neon">
+          Progress: {registeredFingers}/2 fingerprints added
+        </div>
+      )}
+
       <p className="text-sm text-cyan-neon/60 text-center max-w-md">
-        Drag the ginger icon to the right to unlock, then authenticate with biometric fingerprint
+        {mode === 'register' 
+          ? 'Drag to add up to 2 security verifications'
+          : 'Drag to verify your security and continue'
+        }
       </p>
 
       {authStatus !== 'idle' && (
