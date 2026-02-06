@@ -25,8 +25,7 @@ export default function MarishimTokenPage() {
   const [myBalance, setMyBalance] = useState(0);
   const [priceChange24h, setPriceChange24h] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
-  const [sendAddress, setSendAddress] = useState('');
-  const [receiveAddress, setReceiveAddress] = useState('');
+  const [depositAddress, setDepositAddress] = useState('');
   const [addressVerified, setAddressVerified] = useState(false);
   const [biometricComplete, setBiometricComplete] = useState(false);
   const isVerified = addressVerified && biometricComplete;
@@ -99,10 +98,9 @@ export default function MarishimTokenPage() {
   }, [autoTradeEnabled, token, sellThreshold, myBalance]);
 
   const handleVerifyAccess = () => {
-    const normalizedSend = sendAddress.trim();
-    const normalizedReceive = receiveAddress.trim();
+    const normalized = depositAddress.trim();
 
-    if (normalizedSend === ADMIN_WALLET || normalizedReceive === ADMIN_WALLET) {
+    if (normalized === ADMIN_WALLET) {
       setAddressVerified(true);
       return;
     }
@@ -155,15 +153,9 @@ export default function MarishimTokenPage() {
             <h1 className="text-3xl font-bold mb-4 text-cyan-400">Enter Your Address</h1>
             <div className="space-y-3 max-w-md mx-auto">
               <input
-                value={sendAddress}
-                onChange={(e) => setSendAddress(e.target.value)}
-                placeholder="Send address"
-                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
-              />
-              <input
-                value={receiveAddress}
-                onChange={(e) => setReceiveAddress(e.target.value)}
-                placeholder="Receive address"
+                value={depositAddress}
+                onChange={(e) => setDepositAddress(e.target.value)}
+                placeholder="Deposit address"
                 className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
               />
               <button
@@ -218,15 +210,9 @@ export default function MarishimTokenPage() {
             <p className="text-gray-400 mb-6">This route is for Marishim only</p>
             <div className="mt-6 space-y-3 max-w-md mx-auto">
               <input
-                value={sendAddress}
-                onChange={(e) => setSendAddress(e.target.value)}
-                placeholder="Send address"
-                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
-              />
-              <input
-                value={receiveAddress}
-                onChange={(e) => setReceiveAddress(e.target.value)}
-                placeholder="Receive address"
+                value={depositAddress}
+                onChange={(e) => setDepositAddress(e.target.value)}
+                placeholder="Deposit address"
                 className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
               />
               <button
