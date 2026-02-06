@@ -21,26 +21,20 @@ export default function MarishimTokenPage() {
   const { publicKey, connected } = useWallet();
   const [token, setToken] = useState<any>(null);
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(false);
-  const [sellThreshold, setSellThreshold] = useState(-10); // Auto-sell if drops 10%
+  const [sellThreshold, setSellThreshold] = useState(-10);
   const [myBalance, setMyBalance] = useState(0);
   const [priceChange24h, setPriceChange24h] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
-  const [depositAddress, setDepositAddress] = useState('');
-  const [addressVerified, setAddressVerified] = useState(false);
-  const [biometricComplete, setBiometricComplete] = useState(false);
-  const [biometricMode, setBiometricMode] = useState<'verify' | 'register'>('verify');
-  const isVerified = addressVerified && biometricComplete;
+  const [isVerified, setIsVerified] = useState(false);
 
   const isAdmin = connected && publicKey?.toBase58() === ADMIN_WALLET;
   const isAdminOrVerified = isAdmin || isVerified;
 
   useEffect(() => {
-    // Load or create Marishim token
     const loadToken = async () => {
       let t = getDemoToken('MRSHM');
       
       if (!t && isAdminOrVerified) {
-        // Auto-create token for admin
         t = createDemoToken(
           'Marishim Coin',
           'MRSHM',
@@ -49,15 +43,13 @@ export default function MarishimTokenPage() {
           ADMIN_WALLET
         );
         
-        // Give admin 1000 tokens instantly
         buyDemoToken('MRSHM', 999, ADMIN_WALLET, 0);
       }
       
       setToken(t);
       
       if (t && publicKey) {
-        // Calculate balance (in demo mode)
-        const balance = 1000; // Admin gets 1000 tokens
+        const balance = 1000;
         setMyBalance(balance);
       }
     };
@@ -65,25 +57,21 @@ export default function MarishimTokenPage() {
     loadToken();
   }, [publicKey, isAdminOrVerified]);
 
-  // Auto-trading logic
   useEffect(() => {
     if (!autoTradeEnabled || !token) return;
 
     const interval = setInterval(() => {
-      // Simulate random price changes
-      const change = (Math.random() - 0.5) * 20; // -10% to +10%
+      const change = (Math.random() - 0.5) * 20;
       simulatePriceChange('MRSHM', change);
       
       const updated = getDemoToken('MRSHM');
       if (updated) {
         setToken({ ...updated });
         
-        // Auto-sell logic
         const oldPrice = token.priceHistory[token.priceHistory.length - 2]?.price || token.price;
         const currentChange = ((updated.price - oldPrice) / oldPrice) * 100;
         
         if (currentChange < sellThreshold && myBalance > 0) {
-          // Auto-sell
           const result = sellDemoToken('MRSHM', myBalance, ADMIN_WALLET);
           if (result.success) {
             setMyBalance(0);
@@ -93,24 +81,13 @@ export default function MarishimTokenPage() {
         
         setPriceChange24h(currentChange);
       }
-    }, 3000); // Update every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [autoTradeEnabled, token, sellThreshold, myBalance]);
 
-  const handleVerifyAccess = () => {
-    const normalized = depositAddress.trim();
-
-    if (normalized === ADMIN_WALLET) {
-      setAddressVerified(true);
-      return;
-    }
-
-    alert('❌ Address does not match admin wallet.');
-  };
-
   const handleBiometricSuccess = () => {
-    setBiometricComplete(true);
+    setIsVerified(true);
   };
 
   const handleBuyFree = async () => {
@@ -138,169 +115,31 @@ export default function MarishimTokenPage() {
     if (updated) setToken({ ...updated });
   };
 
-  if (!connected && !isVerified) {
-    if (!addressVerified) {
-      // Step 1: Address verification
-      return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-6xl mb-6"
-            >
-              🔑
-            </motion.div>
-            <h1 className="text-3xl font-bold mb-4 text-cyan-400">Enter Your Address</h1>
-            <div className="space-y-3 max-w-md mx-auto">
-              <input
-                value={depositAddress}
-                onChange={(e) => setDepositAddress(e.target.value)}
-                placeholder="Deposit address"
-                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
-              />
-              <button
-                onClick={handleVerifyAccess}
-                className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 transition-colors font-bold"
-              >
-                Next
-              </button>
-            </div>
-            <div className="mt-4">
-              <WalletMultiButton />
-            </div>
-          </div>
-        </div>
-      );
-    } else {
-      // Step 2: Biometric verification
-      return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="absolute top-6 right-6">
-            {biometricMode === 'verify' && (
-              <button
-                onClick={() => setBiometricMode('register')}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-bold transition-colors"
-              >
-                � Add Passkey
-              </button>
-            )}
-            {biometricMode === 'register' && (
-              <button
-                onClick={() => setBiometricMode('verify')}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-bold transition-colors"
-              >
-                Back to Verify
-              </button>
-            )}
-          </div>
-          <div className="text-center max-w-md mx-auto">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-6xl mb-6"
-            >
-              👆
-            </motion.div>
-            <h1 className="text-3xl font-bold mb-2 text-cyan-400">
-              {biometricMode === 'register' ? '🔐 Add Passkey' : '🔐 Passkey Login'}
-            </h1>
-            <p className="text-gray-400 mb-8">
-              {biometricMode === 'register' 
-                ? 'Register up to 2 passkeys' 
-                : 'Complete passkey verification to unlock'
-              }
-            </p>
-            <Gingerswipe onSuccess={handleBiometricSuccess} mode={biometricMode} />
-          </div>
-        </div>
-      );
-    }
-  }
-
+  // Single-step verification: just the swipe
   if (!isAdminOrVerified) {
-    if (!addressVerified) {
-      // Step 1: Address verification
-      return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-center">
-            <motion.div
-              initial={{ rotate: 0 }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-6xl mb-6"
-            >
-              🚫
-            </motion.div>
-            <h1 className="text-3xl font-bold text-red-500 mb-4">Access Denied</h1>
-            <p className="text-gray-400 mb-6">This route is for Marishim only</p>
-            <div className="mt-6 space-y-3 max-w-md mx-auto">
-              <input
-                value={depositAddress}
-                onChange={(e) => setDepositAddress(e.target.value)}
-                placeholder="Deposit address"
-                className="w-full bg-gray-900 border border-cyan-500/40 rounded-lg px-4 py-2 text-sm"
-              />
-              <button
-                onClick={handleVerifyAccess}
-                className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 transition-colors font-bold"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="text-6xl mb-6"
+          >
+            👆
+          </motion.div>
+          <h1 className="text-3xl font-bold mb-2 text-cyan-400">Authenticate</h1>
+          <p className="text-gray-400 mb-8">
+            Complete the swipe to unlock the dashboard
+          </p>
+          <Gingerswipe onSuccess={handleBiometricSuccess} mode="verify" />
         </div>
-      );
-    } else {
-      // Step 2: Biometric verification
-      return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="absolute top-6 right-6">
-            {biometricMode === 'verify' && (
-              <button
-                onClick={() => setBiometricMode('register')}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-bold transition-colors"
-              >
-                � Add Passkey
-              </button>
-            )}
-            {biometricMode === 'register' && (
-              <button
-                onClick={() => setBiometricMode('verify')}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-bold transition-colors"
-              >
-                Back to Verify
-              </button>
-            )}
-          </div>
-          <div className="text-center max-w-md mx-auto">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-6xl mb-6"
-            >
-              👆
-            </motion.div>
-            <h1 className="text-3xl font-bold mb-2 text-cyan-400">
-              {biometricMode === 'register' ? '🔐 Add Passkey' : '🔐 Passkey Login'}
-            </h1>
-            <p className="text-gray-400 mb-8">
-              {biometricMode === 'register' 
-                ? 'Register up to 2 passkeys' 
-                : 'Complete passkey verification to unlock'
-              }
-            </p>
-            <Gingerswipe onSuccess={handleBiometricSuccess} mode={biometricMode} />
-          </div>
-        </div>
-      );
-    }
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <motion.h1
             initial={{ x: -50, opacity: 0 }}
@@ -314,7 +153,6 @@ export default function MarishimTokenPage() {
 
         {token ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Token Stats */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -351,7 +189,6 @@ export default function MarishimTokenPage() {
                 </div>
               </div>
 
-              {/* Price Chart */}
               <div className="bg-black/50 p-6 rounded-xl">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-cyan-400" />
@@ -376,14 +213,12 @@ export default function MarishimTokenPage() {
               </div>
             </motion.div>
 
-            {/* Trading Controls */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
               className="space-y-6"
             >
-              {/* Auto-Trading */}
               <div className="bg-gradient-to-br from-purple-900/50 to-cyan-900/50 backdrop-blur-lg rounded-2xl p-6 border-2 border-purple-500/30">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <Zap className="w-5 h-5 text-yellow-400" />
@@ -420,7 +255,6 @@ export default function MarishimTokenPage() {
                 </div>
               </div>
 
-              {/* Quick Actions */}
               <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border-2 border-cyan-500/30">
                 <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                 
@@ -440,7 +274,6 @@ export default function MarishimTokenPage() {
                 </button>
               </div>
 
-              {/* Status */}
               <div className="bg-black/50 p-4 rounded-xl border border-cyan-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`w-3 h-3 rounded-full ${autoTradeEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
