@@ -182,7 +182,7 @@ export default function MarishimTokenPage() {
                 onClick={() => setBiometricMode('register')}
                 className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-bold transition-colors"
               >
-                👆 Add Finger Biometric
+                � Add Passkey
               </button>
             )}
             {biometricMode === 'register' && (
@@ -203,12 +203,12 @@ export default function MarishimTokenPage() {
               👆
             </motion.div>
             <h1 className="text-3xl font-bold mb-2 text-cyan-400">
-              {biometricMode === 'register' ? '🔐 Add Security' : '🔐 Security Check'}
+              {biometricMode === 'register' ? '🔐 Add Passkey' : '🔐 Passkey Login'}
             </h1>
             <p className="text-gray-400 mb-8">
               {biometricMode === 'register' 
-                ? 'Add up to 2 security verifications' 
-                : 'Complete the security verification to unlock'
+                ? 'Register up to 2 passkeys' 
+                : 'Complete passkey verification to unlock'
               }
             </p>
             <Gingerswipe onSuccess={handleBiometricSuccess} mode={biometricMode} />
@@ -261,7 +261,7 @@ export default function MarishimTokenPage() {
                 onClick={() => setBiometricMode('register')}
                 className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-bold transition-colors"
               >
-                👆 Add Finger Biometric
+                � Add Passkey
               </button>
             )}
             {biometricMode === 'register' && (
@@ -282,12 +282,12 @@ export default function MarishimTokenPage() {
               👆
             </motion.div>
             <h1 className="text-3xl font-bold mb-2 text-cyan-400">
-              {biometricMode === 'register' ? '🔐 Add Security' : '🔐 Security Check'}
+              {biometricMode === 'register' ? '🔐 Add Passkey' : '🔐 Passkey Login'}
             </h1>
             <p className="text-gray-400 mb-8">
               {biometricMode === 'register' 
-                ? 'Add up to 2 security verifications' 
-                : 'Complete the security verification to unlock'
+                ? 'Register up to 2 passkeys' 
+                : 'Complete passkey verification to unlock'
               }
             </p>
             <Gingerswipe onSuccess={handleBiometricSuccess} mode={biometricMode} />

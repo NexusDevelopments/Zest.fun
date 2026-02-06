@@ -18,8 +18,8 @@ export default function Gingerswipe({ onSuccess, mode = 'verify' }: GingerswipeP
   const constraintsRef = useRef<HTMLDivElement>(null);
   
   const x = useMotionValue(0);
-  const trackWidth = 320;
-  const iconSize = 60;
+  const trackWidth = 380; // Increased from 320
+  const iconSize = 70; // Increased from 60
   const threshold = trackWidth - iconSize - 16;
 
   const backgroundColor = useTransform(
@@ -42,7 +42,7 @@ export default function Gingerswipe({ onSuccess, mode = 'verify' }: GingerswipeP
       setIsUnlocked(true);
       setAuthStatus('prompt');
       const isRegister = mode === 'register';
-      setAuthMessage(isRegister ? `Add Fingerprint ${registeredFingers + 1} of 2...` : 'Verifying security...');
+      setAuthMessage(isRegister ? `Add Passkey ${registeredFingers + 1} of 2...` : 'Verifying passkey...');
       setTimeout(() => {
         triggerBiometricAuth();
       }, 500);
@@ -152,16 +152,16 @@ export default function Gingerswipe({ onSuccess, mode = 'verify' }: GingerswipeP
   return (
     <div className="flex flex-col items-center space-y-4 w-full">
       <h2 className="text-2xl font-bold cyan-glow mb-4">
-        🔐 {mode === 'register' ? 'Add Security' : 'Security Check'}
+        🔐 {mode === 'register' ? 'Add Passkey' : 'Passkey Verification'}
       </h2>
       
       <div 
         ref={constraintsRef}
-        className="relative rounded-full overflow-visible mx-auto"
+        className="relative rounded-3xl overflow-visible mx-auto"
         style={{ 
           width: '100%',
           maxWidth: `${trackWidth}px`,
-          height: `${iconSize + 24}px`,
+          height: `${iconSize + 32}px`,
           border: '3px solid',
           borderColor: isUnlocked ? '#00FFFF' : '#D2691E',
           boxShadow: isUnlocked 
@@ -220,14 +220,14 @@ export default function Gingerswipe({ onSuccess, mode = 'verify' }: GingerswipeP
 
       {mode === 'register' && registeredFingers > 0 && (
         <div className="text-sm text-cyan-neon">
-          Progress: {registeredFingers}/2 fingerprints added
+          Progress: {registeredFingers}/2 passkeys added
         </div>
       )}
 
       <p className="text-sm text-cyan-neon/60 text-center max-w-md">
         {mode === 'register' 
-          ? 'Drag to add up to 2 security verifications'
-          : 'Drag to verify your security and continue'
+          ? 'Drag to register up to 2 passkeys'
+          : 'Drag to verify your passkey and continue'
         }
       </p>
 
